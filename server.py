@@ -297,23 +297,66 @@ async def system_status():
         }
     }
 
+def get_static_file(filename: str) -> Optional[Path]:
+    for cand in [BASE_DIR / "static" / filename, BASE_DIR / filename]:
+        if cand.exists():
+            return cand
+    return None
+
 @app.get("/favicon.ico")
 @app.get("/favicon.svg")
 async def get_favicon():
-    fav_path = STATIC_DIR / "favicon.svg"
-    if fav_path.exists():
-        return FileResponse(fav_path, media_type="image/svg+xml")
+    p = get_static_file("favicon.svg")
+    if p:
+        return FileResponse(p, media_type="image/svg+xml")
     return JSONResponse(status_code=404, content={"detail": "Not found"})
 
 @app.get("/")
 async def root():
-    return FileResponse(STATIC_DIR / "index.html")
+    p = get_static_file("index.html")
+    if p:
+        return FileResponse(p)
+    return JSONResponse(
+        status_code=404,
+        content={"detail": "Frontend index.html is missing. Please upload the frontend files (index.html, style.css, app.js) to your GitHub repo."}
+    )
 
 # Direct route for /c/{code} to serve the index.html with code preloaded
 @app.get("/c/{code}")
 async def direct_code_share(code: str):
-    return FileResponse(STATIC_DIR / "index.html")
+    p = get_static_file("index.html")
+    if p:
+        return FileResponse(p)
+    return JSONResponse(status_code=404, content={"detail": "index.html missing"})
 
-# Mount static frontend
-if STATIC_DIR.exists():
-    app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")
+@app.get("/style.css")
+async def get_style():
+    p = get_static_file("style.css")
+    if p:
+        return FileResponse(p, media_type="text/css")
+    return JSONResponse(status_code=404, content={"detail": "style.css not found"})
+
+@app.get("/app.js")
+async def get_app_js():
+    p = get_static_file("app.js")
+    if p:
+        return FileResponse(p, media_type="application/javascript")
+    return JSONResponse(status_code=404, content={"detail": "app.js not found"})
+
+@app.get("/robots.txt")
+async def get_robots():
+    p = get_static_file("robots.txt")
+    if p:
+        return FileResponse(p, media_type="text/plain")
+    return JSONResponse(status_code=404, content={"detail": "robots.txt not found"})
+
+@app.get("/sitemap.xml")
+async def get_sitemap():
+    p = get_static_file("sitemap.xml")
+    if p:
+        return FileResponse(p, media_type="text/xml")
+    return JSONResponse(status_code=404, content={"detail": "sitemap.xml not found"})
+
+# Mount static frontend if directory exists
+if (BASE_DIR / "static").exists():
+    app.mount("/", StaticFiles(directory=str(BASE_DIR / "static"), html=True), name="static")

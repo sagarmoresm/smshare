@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SMSHARE — Temporary File & Text Sharing Without Signup</title>
+  <meta name="description" content="Share files, text, links, and messages with a simple 4-character code. No signup or login — your content is temporary and self-destructs after expiry." />
+  <meta name="keywords" content="pastebin alternative,file sharing no login,text sharing no login,temporary file sharing,anonymous file sharing,smshare" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://smshare.onrender.com/" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://smshare.onrender.com/" />
+  <meta property="og:title" content="SMSHARE — Temporary File & Text Sharing Without Signup" />
+  <meta property="og:description" content="Share files, text, links, and messages with a simple 4-character code. No signup or login — your content is temporary and self-destructs after expiry." />
+  <meta property="og:image" content="https://smshare.onrender.com/favicon.svg" />
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary" />
+  <meta property="twitter:url" content="https://smshare.onrender.com/" />
+  <meta property="twitter:title" content="SMSHARE — Temporary File & Text Sharing Without Signup" />
+  <meta property="twitter:description" content="Share files, text, links, and messages with a simple 4-character code. No signup, no accounts, auto-wipe on expiry." />
+
+  <!-- Structured Data (Schema.org JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "SMSHARE",
+    "url": "https://smshare.onrender.com/",
+    "description": "Zero-identity, privacy-first temporary file and text sharing tool with 4-character codes.",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "All",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
+  }
+  </script>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+  <!-- Google Fonts for Clean Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+  <!-- Sticky Navbar -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="/" class="brand-logo">
+        <svg class="icon icon-md" viewBox="0 0 24 24" style="stroke-width: 2.5;"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        <span>SMSHARE</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="#" data-modal="about">About</a></li>
+        <li><a href="#" data-modal="privacy">Privacy</a></li>
+        <li><a href="#" data-modal="terms">Terms</a></li>
+        <li><a href="#" data-modal="contact">Contact</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <button id="themeToggle" class="theme-toggle-btn" title="Toggle Theme" aria-label="Toggle Theme">
+          <svg class="icon icon-md" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+        <button class="neo-btn neo-btn-pink" data-modal="contact" style="padding: 8px 14px; font-size: 0.82rem;">
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          SUPPORT
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Header -->
+  <header class="hero-section">
+    <div class="hero-pill-badge">
+      <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+      <span>NO LOGIN · NO SIGNUP · SELF-DESTRUCTS ON EXPIRY</span>
+    </div>
+    <h1 class="hero-title">
+      Share anything,<br />
+      <span class="hero-highlight">no strings attached.</span>
+    </h1>
+    <p class="hero-subtitle">
+      Drop a message, link, image, PDF, or file. Get a 4-character code. Share the code — everything vanishes after expiry. No trace, no account.
+    </p>
+  </header>
+
+  <!-- Main Sharing Terminal -->
+  <main class="share-container">
+    <!-- Tabs -->
+    <div class="tab-nav">
+      <button id="tabSend" class="tab-btn active" type="button">
+        <svg class="icon icon-md" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        <span>SEND</span>
+      </button>
+      <button id="tabReceive" class="tab-btn" type="button">
+        <svg class="icon icon-md" viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+        <span>RECEIVE</span>
+      </button>
+    </div>
+
+    <!-- Interactive Card -->
+    <div class="neo-box share-card">
+
+      <!-- SEND PANEL -->
+      <section id="panelSend" class="panel-section active">
+        <!-- Form view -->
+        <div id="sendFormContainer">
+          <textarea
+            id="messageInput"
+            class="text-input-area"
+            placeholder="Type a message, paste a link, notes, or secret text..."
+          ></textarea>
+
+          <!-- Dropzone -->
+          <div id="dropzone" class="dropzone">
+            <input type="file" id="fileInput" multiple style="display: none;" />
+            <div class="dropzone-icon" style="color: var(--text-main);">
+              <svg class="icon icon-xl" viewBox="0 0 24 24" style="stroke-width:1.8;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <div class="dropzone-text">Click or drag files here to attach</div>
+            <div class="dropzone-hint">Up to 10 files · 500 MB each · Automatically wiped on expiry</div>
+          </div>
+
+          <!-- Selected Files List -->
+          <div id="fileList" class="file-list"></div>
+
+          <!-- Bottom Controls -->
+          <div class="card-controls">
+            <div class="expiry-select-wrapper">
+              <select id="expirySelect" class="expiry-select">
+                <option value="0.5" selected>Expires in 30 min</option>
+                <option value="2">Expires in 2 hours</option>
+                <option value="12">Expires in 12 hours</option>
+                <option value="24">Expires in 24 hours</option>
+              </select>
+              <span class="expiry-select-icon">
+                <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+              </span>
+            </div>
+
+            <div class="send-action-wrapper">
+              <span class="shortcut-hint">⌘↵ or Ctrl+↵ to send</span>
+              <button id="sendBtn" class="neo-btn neo-btn-primary" type="button">
+                <svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                <span>SEND</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div id="uploadProgress" class="progress-container">
+            <div class="progress-bar-outer">
+              <div id="progressBar" class="progress-bar-inner"></div>
+            </div>
+            <div id="progressText" class="progress-text">0%</div>
+          </div>
+        </div>
+
+        <!-- Success Result View -->
+        <div id="sendResultContainer" class="result-box">
+          <div class="neo-badge result-badge">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <span>PAYLOAD READY TO SHARE</span>
+          </div>
+
+          <div class="big-code-container">
+            <div style="font-size: 0.85rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">
+              Your 4-Character Share Code
+            </div>
+            <div id="generatedCodeDisplay" class="big-code">----</div>
+            <div class="big-code-actions">
+              <button id="copyCodeBtn" class="neo-btn neo-btn-cyan" type="button" style="padding: 8px 16px;">
+                <svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                <span>COPY CODE</span>
+              </button>
+              <button id="copyLinkBtn" class="neo-btn neo-btn-lime" type="button" style="padding: 8px 16px;">
+                <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                <span>COPY DIRECT LINK</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- QR Code Container -->
+          <div class="qr-container">
+            <div style="font-size: 0.85rem; font-weight: 800; text-transform: uppercase; display: flex; align-items: center; gap: 6px;">
+              <svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+              <span>Scan with Mobile Camera</span>
+            </div>
+            <div id="qrBox"></div>
+          </div>
+
+          <!-- Countdown -->
+          <div id="sendCountdown" class="timer-box">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span>Wipes in <strong>29m 59s</strong></span>
+          </div>
+
+          <div style="margin-top: 24px;">
+            <button id="sendAnotherBtn" class="neo-btn neo-btn-pink" type="button">
+              <svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>CREATE ANOTHER SHARE</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- RECEIVE PANEL -->
+      <section id="panelReceive" class="panel-section">
+        <div class="receive-form">
+          <div style="font-weight: 800; font-size: 1rem;">
+            Enter 4-character code to retrieve shared content:
+          </div>
+
+          <div class="code-input-wrapper">
+            <input
+              type="text"
+              id="receiveCodeInput"
+              class="code-input"
+              placeholder="ABCD"
+              maxlength="4"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </div>
+
+          <button id="receiveBtn" class="neo-btn neo-btn-cyan" type="button">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+            <span>RETRIEVE CONTENT</span>
+          </button>
+        </div>
+
+        <!-- Loading spinner -->
+        <div id="receiveLoading" style="display: none; text-align: center; padding: 24px;">
+          <div class="neo-badge" style="background: var(--accent-yellow); font-size: 1rem; padding: 8px 20px;">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span>SEARCHING PAYLOAD...</span>
+          </div>
+        </div>
+
+        <!-- Received View -->
+        <div id="receivedContentBox" class="received-content-box" style="margin-top: 24px;">
+          <div class="received-header">
+            <div class="neo-badge" style="background: var(--accent-lime); color: #000;">
+              <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>PAYLOAD VERIFIED & ACTIVE</span>
+            </div>
+            <div id="receiveCountdown" class="timer-box" style="margin-top: 0;">
+              <svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span>Wipes in <strong>--</strong></span>
+            </div>
+          </div>
+
+          <!-- Text payload -->
+          <div id="textPayloadCard" class="text-payload-card" style="display: none;">
+            <button id="copyTextBtn" class="neo-btn neo-btn-yellow copy-text-btn" type="button" style="padding: 4px 10px; font-size: 0.75rem;">
+              <svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              <span>COPY TEXT</span>
+            </button>
+            <div id="textPayloadContent" class="text-payload-content"></div>
+          </div>
+
+          <!-- Files payload -->
+          <div id="filesContainer" style="display: none;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+              <span style="font-weight: 900; font-size: 1.1rem;">ATTACHED FILES</span>
+              <button id="downloadAllZipBtn" class="neo-btn neo-btn-purple" type="button" style="padding: 8px 16px; font-size: 0.85rem;">
+                <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+                <span>DOWNLOAD ALL AS ZIP</span>
+              </button>
+            </div>
+            <div id="filesListReceived" class="download-files-grid"></div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- How It Works Section -->
+  <section class="section-wrapper">
+    <div class="section-header">
+      <div class="neo-badge section-tag">SIMPLE ARCHITECTURE</div>
+      <h2 class="section-title">How it works</h2>
+      <p style="font-weight: 700; color: var(--text-muted);">
+        Four steps, zero accounts. Share anything in under 60 seconds.
+      </p>
+    </div>
+
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num">01</div>
+        <div class="step-title">Compose</div>
+        <div class="step-desc">
+          Type a message, paste a link, or drag in any file up to 500 MB. No setup needed.
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">02</div>
+        <div class="step-title">Get a Code</div>
+        <div class="step-desc">
+          A unique 4-character alphanumeric code is generated instantly upon transmission.
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">03</div>
+        <div class="step-title">Share the Code</div>
+        <div class="step-desc">
+          Read it aloud, text it, or scan the QR code — no app or login needed on either device.
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">04</div>
+        <div class="step-title">Auto-Wipe</div>
+        <div class="step-desc">
+          After chosen expiry (default 30 min), the database record and files are permanently deleted.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Built for Privacy-First Sharing -->
+  <section class="section-wrapper">
+    <div class="section-header">
+      <div class="neo-badge section-tag" style="background: var(--accent-lime);">CORE GUARANTEES</div>
+      <h2 class="section-title">Built for privacy-first sharing</h2>
+      <p style="font-weight: 700; color: var(--text-muted);">
+        Everything is engineered so the two of you are the only ones who ever access it.
+      </p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon-badge" style="background: var(--accent-pink);">
+          <svg class="icon icon-lg" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+        </div>
+        <div class="feature-title">Auto-wipe on expiry</div>
+        <div class="feature-desc">
+          Content and code cease to exist automatically once the timer runs out. No manual deletion needed.
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon-badge" style="background: var(--accent-cyan);">
+          <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        </div>
+        <div class="feature-title">Any file type</div>
+        <div class="feature-desc">
+          Images, PDFs, ZIPs, documents, and videos — up to 500 MB each.
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon-badge" style="background: var(--accent-yellow);">
+          <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="18" y1="8" x2="23" y2="13"/><line x1="23" y1="8" x2="18" y2="13"/></svg>
+        </div>
+        <div class="feature-title">Zero identity</div>
+        <div class="feature-desc">
+          No account, no email, no phone number, and no tracking cookies. You are just a code.
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon-badge" style="background: var(--accent-purple);">
+          <svg class="icon icon-lg" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </div>
+        <div class="feature-title">Open & auditable</div>
+        <div class="feature-desc">
+          Clean self-destruct mechanism. Inspect and verify the hard-delete workflow yourself.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Accordion -->
+  <section class="section-wrapper">
+    <div class="section-header">
+      <div class="neo-badge section-tag" style="background: var(--accent-yellow);">COMMON QUESTIONS</div>
+      <h2 class="section-title">Frequently asked questions</h2>
+    </div>
+
+    <div class="faq-list">
+      <div class="faq-item">
+        <div class="faq-question">
+          <span>How long does my content stay live?</span>
+          <span class="faq-icon">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </span>
+        </div>
+        <div class="faq-answer">
+          By default, 30 minutes. Before sending you can choose 30 minutes, 2 hours, 12 hours, or 24 hours. When the time is up, the content and its code are hard-deleted — there is no way to recover them.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <span>Is SMSHARE really anonymous?</span>
+          <span class="faq-icon">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </span>
+        </div>
+        <div class="faq-answer">
+          Yes. There is no account, no email, no phone number, and no sign-up of any kind. We do not log IP addresses and we do not use cross-site tracking cookies to identify you.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <span>What is the file size limit?</span>
+          <span class="faq-icon">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </span>
+        </div>
+        <div class="faq-answer">
+          Each file can be up to 500 MB, and you can attach up to 10 files at once — images, PDFs, ZIPs, videos, audio, and documents.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <span>What happens when a code expires?</span>
+          <span class="faq-icon">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </span>
+        </div>
+        <div class="faq-answer">
+          The code stops working permanently. Entering an expired code returns nothing, and the database record along with any stored files are immediately purged from disk.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <span>Is my data encrypted?</span>
+          <span class="faq-icon">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </span>
+        </div>
+        <div class="faq-answer">
+          All traffic is transmitted over HTTPS (TLS). Files are saved with randomized internal IDs in temporary self-purging storage partitions.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <span>Can I download multiple files at once?</span>
+          <span class="faq-icon">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </span>
+        </div>
+        <div class="faq-answer">
+          Yes! If a sender uploads multiple files, you can preview and download them individually or click the "Download All as ZIP" button to get everything bundled in one archive.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Deep Dive / SEO Section -->
+  <section class="section-wrapper">
+    <div class="seo-card">
+      <h3>Temporary, anonymous, private sharing</h3>
+      <p>
+        SMSHARE is a simple way to share files, text, links, images, and messages without an account. Upload or type what you want to share, get a 4-character code, and hand it to whoever needs it. There is no signup, no login, and no permanent storage — everything self-destructs when the timer runs out.
+      </p>
+      <div style="font-weight: 800; margin-bottom: 10px; font-size: 0.95rem;">
+        Explore sharing use cases:
+      </div>
+      <div class="seo-chips">
+        <span class="neo-badge" style="background: var(--accent-cyan); color: #000;">Anonymous file sharing</span>
+        <span class="neo-badge" style="background: var(--accent-pink); color: #000;">Temporary file sharing</span>
+        <span class="neo-badge" style="background: var(--accent-yellow); color: #000;">File sharing without signup</span>
+        <span class="neo-badge" style="background: var(--accent-lime); color: #000;">Anonymous text sharing</span>
+        <span class="neo-badge" style="background: var(--accent-purple); color: #000;">Self-destructing messages</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div>
+        <div class="brand-logo" style="font-size: 1.3rem; margin-bottom: 6px;">
+          <svg class="icon icon-md" viewBox="0 0 24 24" style="stroke-width: 2.5;"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          <span>SMSHARE</span>
+        </div>
+        <div class="footer-note">
+          © 2026 SMSHARE. Built for privacy-first sharing.<br />
+          No account · No tracking · Self-destructing messages.
+        </div>
+      </div>
+
+      <div class="footer-nav">
+        <a href="/">Home</a>
+        <a href="#" data-modal="about">About</a>
+        <a href="#" data-modal="privacy">Privacy</a>
+        <a href="#" data-modal="terms">Terms</a>
+        <a href="#" data-modal="contact">Contact</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Modal Overlay -->
+  <div id="modalOverlay" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle" class="modal-title">Modal</h3>
+        <button id="modalCloseBtn" class="modal-close-btn" type="button">×</button>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="/app.js"></script>
+</body>
+</html>

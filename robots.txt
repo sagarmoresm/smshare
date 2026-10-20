@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Allow: /style.css
+Allow: /app.js
+Allow: /favicon.svg
+
+# Disallow indexing private transfer payloads and direct API endpoints
+Disallow: /api/
+Disallow: /c/
+Disallow: /*?code=*
+
+Sitemap: https://smshare.onrender.com/sitemap.xml
