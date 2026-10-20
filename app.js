@@ -6,8 +6,10 @@
 document.addEventListener("DOMContentLoaded", () => {
   // --- STATE ---
   let selectedFiles = [];
+  let isPrivateShare = false;
   let sendTimerInterval = null;
   let receiveTimerInterval = null;
+  let currentPrivateCode = null;
 
   // --- ICONS LIBRARY (Clean Inline SVGs) ---
   const ICONS = {
@@ -46,6 +48,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const sendBtn = document.getElementById("sendBtn");
   const sendAnotherBtn = document.getElementById("sendAnotherBtn");
 
+  // Public / Private Buttons & Input
+  const visPublicBtn = document.getElementById("visPublicBtn");
+  const visPrivateBtn = document.getElementById("visPrivateBtn");
+  const passwordFieldContainer = document.getElementById("passwordFieldContainer");
+  const sharePasswordInput = document.getElementById("sharePasswordInput");
+
   const uploadProgress = document.getElementById("uploadProgress");
   const progressBar = document.getElementById("progressBar");
   const progressText = document.getElementById("progressText");
@@ -56,9 +64,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const qrBox = document.getElementById("qrBox");
   const sendCountdown = document.getElementById("sendCountdown");
 
+  // Receive Elements
   const receiveCodeInput = document.getElementById("receiveCodeInput");
   const receiveBtn = document.getElementById("receiveBtn");
   const receiveLoading = document.getElementById("receiveLoading");
+  const privatePasswordCard = document.getElementById("privatePasswordCard");
+  const receivePasswordInput = document.getElementById("receivePasswordInput");
+  const unlockBtn = document.getElementById("unlockBtn");
+
   const receivedContentBox = document.getElementById("receivedContentBox");
   const textPayloadCard = document.getElementById("textPayloadCard");
   const textPayloadContent = document.getElementById("textPayloadContent");
@@ -101,6 +114,27 @@ document.addEventListener("DOMContentLoaded", () => {
       toast.style.transform = "translateY(10px)";
       setTimeout(() => toast.remove(), 200);
     }, 2800);
+  }
+
+  // --- PUBLIC / PRIVATE TOGGLE ---
+  if (visPublicBtn && visPrivateBtn) {
+    visPublicBtn.addEventListener("click", () => {
+      isPrivateShare = false;
+      visPublicBtn.className = "neo-btn neo-btn-lime";
+      visPrivateBtn.className = "neo-btn";
+      visPrivateBtn.style.background = "var(--surface-secondary)";
+      passwordFieldContainer.style.display = "none";
+      sharePasswordInput.value = "";
+    });
+
+    visPrivateBtn.addEventListener("click", () => {
+      isPrivateShare = true;
+      visPrivateBtn.className = "neo-btn neo-btn-pink";
+      visPublicBtn.className = "neo-btn";
+      visPublicBtn.style.background = "var(--surface-secondary)";
+      passwordFieldContainer.style.display = "block";
+      sharePasswordInput.focus();
+    });
   }
 
   // --- TABS SWITCHING ---
@@ -218,10 +252,20 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    if (isPrivateShare && !sharePasswordInput.value.trim()) {
+      showToast("Enter a password for your private share", "alert");
+      sharePasswordInput.focus();
+      return;
+    }
+
     const expireAtHour = parseFloat(expirySelect.value) || 0.5;
     const formData = new FormData();
     if (text) formData.append("text", text);
     formData.append("expireAtHour", expireAtHour);
+    formData.append("isPrivate", isPrivateShare);
+    if (isPrivateShare) {
+      formData.append("password", sharePasswordInput.value.trim());
+    }
     selectedFiles.forEach((file) => formData.append("files", file));
 
     // Disable send button
@@ -314,59 +358,116 @@ document.addEventListener("DOMContentLoaded", () => {
       sendCountdown.innerHTML = `<span style="display:inline-flex; align-items:center; gap:6px;">${ICONS.alert} EXPIRED & WIPED</span>`;
     }, (id) => sendTimerInterval = id);
 
-    showToast("Share generated! Code is active", "check");
+    showToast(data.is_private ? "Private share generated! Password locked." : "Public share generated!", "check");
   }
 
   sendAnotherBtn.addEventListener("click", () => {
     if (sendTimerInterval) clearInterval(sendTimerInterval);
     messageInput.value = "";
     selectedFiles = [];
+    if (visPublicBtn) visPublicBtn.click();
     renderFileList();
     sendResultContainer.style.display = "none";
     sendFormContainer.style.display = "block";
   });
 
-  // --- RECEIVE PAYLOAD ---
+  // --- RECEIVE PAYLOAD (NO AUTO-FETCH ON 4 CHARS - ONLY ON ENTER OR BUTTON CLICK) ---
   receiveCodeInput.addEventListener("input", (e) => {
-    const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-    e.target.value = val;
-    if (val.length === 4) {
-      fetchPayload(val);
+    // Only sanitize input to uppercase alphanumeric, DO NOT trigger search automatically!
+    e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  });
+
+  receiveCodeInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      triggerReceive();
     }
   });
 
-  receiveBtn.addEventListener("click", () => {
+  receiveBtn.addEventListener("click", triggerReceive);
+
+  function triggerReceive() {
     const code = receiveCodeInput.value.trim().toUpperCase();
     if (!code) {
       showToast("Enter a 4-character code first", "alert");
       receiveCodeInput.focus();
       return;
     }
+    if (code.length < 4) {
+      showToast("Please enter the full 4-character code", "alert");
+      receiveCodeInput.focus();
+      return;
+    }
     fetchPayload(code);
-  });
+  }
 
-  async function fetchPayload(code) {
+  async function fetchPayload(code, password = null) {
     if (receiveTimerInterval) clearInterval(receiveTimerInterval);
 
     receiveLoading.style.display = "block";
     receivedContentBox.style.display = "none";
+    if (!password) {
+      privatePasswordCard.style.display = "none";
+    }
 
     try {
-      const resp = await fetch(`/api/receive?code=${encodeURIComponent(code)}`);
+      let url = `/api/receive?code=${encodeURIComponent(code)}`;
+      if (password) {
+        url += `&password=${encodeURIComponent(password)}`;
+      }
+
+      const resp = await fetch(url);
       const data = await resp.json();
 
       receiveLoading.style.display = "none";
 
       if (!resp.ok) {
-        showToast(data.detail || "Share expired or code not found", "alert");
+        if (password) {
+          showToast("Incorrect password. Please try again.", "alert");
+          receivePasswordInput.focus();
+        } else {
+          showToast(data.detail || "Share expired or code not found", "alert");
+        }
         return;
       }
 
+      // Check if private share requires password
+      if (data.requiresPassword) {
+        currentPrivateCode = code;
+        privatePasswordCard.style.display = "block";
+        receivePasswordInput.value = "";
+        receivePasswordInput.focus();
+        showToast("Password protected transfer. Enter password to unlock.", "info");
+        return;
+      }
+
+      // Successfully retrieved
+      privatePasswordCard.style.display = "none";
       displayReceivedPayload(data);
     } catch (err) {
       receiveLoading.style.display = "none";
       showToast("Failed to connect to server", "alert");
     }
+  }
+
+  // Hook up private password unlock button
+  if (unlockBtn) {
+    unlockBtn.addEventListener("click", () => {
+      const pass = receivePasswordInput.value.trim();
+      if (!pass) {
+        showToast("Enter the password first", "alert");
+        receivePasswordInput.focus();
+        return;
+      }
+      fetchPayload(currentPrivateCode || receiveCodeInput.value.trim().toUpperCase(), pass);
+    });
+
+    receivePasswordInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        unlockBtn.click();
+      }
+    });
   }
 
   function displayReceivedPayload(data) {
@@ -425,7 +526,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Zip download
       downloadAllZipBtn.onclick = () => {
-        window.location.href = `/api/download-zip/${data.code}`;
+        const passParam = (data.isPrivate && receivePasswordInput.value.trim()) ? `?password=${encodeURIComponent(receivePasswordInput.value.trim())}` : '';
+        window.location.href = `/api/download-zip/${data.code}${passParam}`;
         showToast("Preparing ZIP archive...", "info");
       };
     } else {

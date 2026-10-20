@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SMSHARE — Secret Admin Control Center</title>
+  <meta name="robots" content="noindex, nofollow" />
+  
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+
+  <style>
+    .admin-container {
+      max-width: 1200px;
+      margin: 32px auto;
+      padding: 0 20px;
+    }
+    .admin-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .admin-stat-card {
+      padding: 20px;
+      background: var(--surface);
+      border: var(--border-width) solid var(--border-color);
+      box-shadow: var(--shadow-hard);
+      border-radius: var(--radius-sm);
+    }
+    .stat-label {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+    .stat-val {
+      font-size: 2rem;
+      font-weight: 900;
+      font-family: var(--font-mono);
+    }
+    .share-row-card {
+      padding: 22px;
+      background: var(--surface);
+      border: var(--border-width) solid var(--border-color);
+      box-shadow: var(--shadow-hard);
+      border-radius: var(--radius-sm);
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .share-header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 12px;
+    }
+    .admin-code-badge {
+      font-family: var(--font-mono);
+      font-size: 1.6rem;
+      font-weight: 900;
+      background: var(--accent-yellow);
+      color: #000;
+      padding: 4px 14px;
+      border: 2px solid #000;
+      box-shadow: 2px 2px 0px #000;
+      border-radius: 4px;
+      letter-spacing: 0.1em;
+    }
+    .pass-reveal-box {
+      font-family: var(--font-mono);
+      font-weight: 800;
+      font-size: 0.9rem;
+      background: var(--surface-secondary);
+      border: 2px solid var(--border-color);
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .admin-login-box {
+      max-width: 440px;
+      margin: 80px auto;
+      padding: 36px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body data-theme="dark">
+
+  <!-- ADMIN LOGIN VIEW -->
+  <div id="adminLoginView" class="admin-login-box neo-box">
+    <div style="font-size: 2rem; margin-bottom: 8px;">🔐</div>
+    <h2 style="font-weight: 900; font-size: 1.8rem; margin-bottom: 8px;">ADMIN CONTROL</h2>
+    <p style="font-size: 0.92rem; color: var(--text-muted); font-weight: 600; margin-bottom: 22px;">
+      Enter the master key to inspect active shares, inspect passwords, and moderate content.
+    </p>
+
+    <form id="loginForm" style="display: flex; flex-direction: column; gap: 14px;">
+      <input
+        type="password"
+        id="adminKeyInput"
+        placeholder="Enter Admin Secret Key..."
+        required
+        style="padding: 14px; border: var(--border-width) solid var(--border-color); border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 1.05rem; background: var(--surface-secondary); color: var(--text-main); outline: none;"
+      />
+      <button type="submit" class="neo-btn neo-btn-primary" style="padding: 14px;">
+        ACCESS DASHBOARD 🔓
+      </button>
+    </form>
+  </div>
+
+  <!-- ADMIN DASHBOARD VIEW -->
+  <div id="adminDashboardView" style="display: none;">
+    <!-- Admin Navbar -->
+    <nav class="navbar">
+      <div class="nav-container">
+        <div class="brand-logo">
+          <span>⚡ SMSHARE</span>
+          <span class="neo-badge" style="background: var(--accent-pink); color: #000; font-size: 0.75rem;">ADMIN PANEL</span>
+        </div>
+
+        <div class="nav-actions">
+          <button id="refreshBtn" class="neo-btn neo-btn-cyan" style="padding: 8px 14px; font-size: 0.85rem;">
+            🔄 REFRESH
+          </button>
+          <a href="/" target="_blank" class="neo-btn neo-btn-lime" style="padding: 8px 14px; font-size: 0.85rem;">
+            🌐 VIEW SITE
+          </a>
+          <button id="logoutBtn" class="neo-btn" style="padding: 8px 14px; font-size: 0.85rem; background: var(--surface-secondary);">
+            LOGOUT
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <div class="admin-container">
+      <!-- Statistics -->
+      <div class="admin-stats-grid">
+        <div class="admin-stat-card">
+          <div class="stat-label">Active Shares</div>
+          <div id="statActiveShares" class="stat-val">0</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="stat-label">Total Files Stored</div>
+          <div id="statTotalFiles" class="stat-val">0</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="stat-label">Disk Storage Used</div>
+          <div id="statTotalStorage" class="stat-val">0 MB</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="stat-label">Auto-Wipe Purge Engine</div>
+          <div class="stat-val" style="color: var(--accent-lime); font-size: 1.4rem;">ACTIVE (20s)</div>
+        </div>
+      </div>
+
+      <!-- Controls & Search -->
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+        <h2 style="font-weight: 900; font-size: 1.6rem;">Live Active Transfers</h2>
+        <div style="display: flex; gap: 10px;">
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Search code or filename..."
+            style="padding: 10px 14px; border: 2px solid var(--border-color); border-radius: 6px; background: var(--surface); color: var(--text-main); font-weight: 700; outline: none; min-width: 260px;"
+          />
+        </div>
+      </div>
+
+      <!-- Active Shares List Container -->
+      <div id="sharesListContainer">
+        <div style="text-align: center; padding: 48px; color: var(--text-muted); font-weight: 700;">
+          Loading active shares...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script>
+    const ADMIN_KEY_STORAGE = "smshare_admin_key";
+    let activeSharesData = [];
+
+    const adminLoginView = document.getElementById("adminLoginView");
+    const adminDashboardView = document.getElementById("adminDashboardView");
+    const loginForm = document.getElementById("loginForm");
+    const adminKeyInput = document.getElementById("adminKeyInput");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const refreshBtn = document.getElementById("refreshBtn");
+    const searchInput = document.getElementById("searchInput");
+    const sharesListContainer = document.getElementById("sharesListContainer");
+
+    const statActiveShares = document.getElementById("statActiveShares");
+    const statTotalFiles = document.getElementById("statTotalFiles");
+    const statTotalStorage = document.getElementById("statTotalStorage");
+    const toastContainer = document.getElementById("toastContainer");
+
+    function showToast(msg, isError = false) {
+      const toast = document.createElement("div");
+      toast.className = "toast";
+      toast.style.background = isError ? "var(--accent-pink)" : "var(--accent-yellow)";
+      toast.innerHTML = `<span>${isError ? '⚠️' : '⚡'}</span><span>${msg}</span>`;
+      toastContainer.appendChild(toast);
+      setTimeout(() => toast.remove(), 2800);
+    }
+
+    function formatBytes(bytes) {
+      if (!bytes || bytes === 0) return "0 B";
+      const k = 1024;
+      const sizes = ["B", "KB", "MB", "GB"];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    }
+
+    // Check if key in query param e.g. /admin?key=...
+    const urlParams = new URLSearchParams(window.location.search);
+    const keyFromUrl = urlParams.get("key");
+    if (keyFromUrl) {
+      sessionStorage.setItem(ADMIN_KEY_STORAGE, keyFromUrl);
+    }
+
+    function checkAuth() {
+      const savedKey = sessionStorage.getItem(ADMIN_KEY_STORAGE);
+      if (savedKey) {
+        adminLoginView.style.display = "none";
+        adminDashboardView.style.display = "block";
+        fetchAdminShares(savedKey);
+      } else {
+        adminLoginView.style.display = "block";
+        adminDashboardView.style.display = "none";
+      }
+    }
+
+    loginForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const enteredKey = adminKeyInput.value.trim();
+      sessionStorage.setItem(ADMIN_KEY_STORAGE, enteredKey);
+      checkAuth();
+    });
+
+    logoutBtn.addEventListener("click", () => {
+      sessionStorage.removeItem(ADMIN_KEY_STORAGE);
+      checkAuth();
+    });
+
+    refreshBtn.addEventListener("click", () => {
+      const key = sessionStorage.getItem(ADMIN_KEY_STORAGE);
+      if (key) fetchAdminShares(key);
+    });
+
+    searchInput.addEventListener("input", (e) => {
+      renderShares(e.target.value.toLowerCase());
+    });
+
+    async function fetchAdminShares(key) {
+      try {
+        const resp = await fetch(`/api/admin/shares?key=${encodeURIComponent(key)}`);
+        if (!resp.ok) {
+          if (resp.status === 401) {
+            sessionStorage.removeItem(ADMIN_KEY_STORAGE);
+            showToast("Invalid Admin Key!", true);
+            checkAuth();
+            return;
+          }
+          throw new Error("Failed to load shares.");
+        }
+
+        const data = await resp.json();
+        activeSharesData = data.shares || [];
+
+        statActiveShares.textContent = data.activeCount || 0;
+        statTotalFiles.textContent = data.totalFiles || 0;
+        statTotalStorage.textContent = formatBytes(data.totalStorageBytes || 0);
+
+        renderShares(searchInput.value.toLowerCase());
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    function renderShares(query = "") {
+      const filtered = activeSharesData.filter((s) => {
+        if (!query) return true;
+        if (s.code.toLowerCase().includes(query)) return true;
+        if (s.text_content && s.text_content.toLowerCase().includes(query)) return true;
+        if (s.files && s.files.some(f => f.file_name.toLowerCase().includes(query))) return true;
+        return false;
+      });
+
+      if (filtered.length === 0) {
+        sharesListContainer.innerHTML = `
+          <div class="neo-box" style="padding: 40px; text-align: center; color: var(--text-muted); font-weight: 700;">
+            No active shares found on server.
+          </div>
+        `;
+        return;
+      }
+
+      sharesListContainer.innerHTML = "";
+      filtered.forEach((share) => {
+        const card = document.createElement("div");
+        card.className = "share-row-card";
+
+        // Privacy indicator & Password
+        let privHtml = "";
+        if (share.is_private) {
+          const pass = share.password || "No password set";
+          privHtml = `
+            <span class="neo-badge" style="background: var(--accent-pink); color: #000;">🔒 PRIVATE</span>
+            <span class="pass-reveal-box" title="Click to copy password" onclick="navigator.clipboard.writeText('${pass}'); alert('Copied password: ${pass}');">
+              🔑 PASS: <strong>${pass}</strong>
+            </span>
+          `;
+        } else {
+          privHtml = `<span class="neo-badge" style="background: var(--accent-lime); color: #000;">🔓 PUBLIC</span>`;
+        }
+
+        // Remaining time calculation
+        const minsRemaining = Math.max(0, Math.floor(share.seconds_remaining / 60));
+        const secsRemaining = Math.max(0, share.seconds_remaining % 60);
+
+        // Files html
+        let filesHtml = "";
+        if (share.files && share.files.length > 0) {
+          filesHtml = `
+            <div style="margin-top: 10px;">
+              <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 8px;">Attached Files (${share.files.length}):</div>
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                ${share.files.map(f => {
+                  const ext = f.file_name.split('.').pop().toLowerCase();
+                  let preview = '';
+                  if (['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext)) {
+                    preview = `<img src="${f.downloadUrl}" style="height: 50px; border-radius: 4px; border: 1px solid var(--border-color);" />`;
+                  }
+                  return `
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--surface-secondary); border: 1px solid var(--border-color); border-radius: 4px; gap: 10px;">
+                      <div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
+                        ${preview}
+                        <span style="font-weight: 700; font-size: 0.9rem; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${f.file_name}</span>
+                        <span style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);">(${formatBytes(f.file_size)})</span>
+                      </div>
+                      <a href="${f.downloadUrl}" download="${f.file_name}" class="neo-btn neo-btn-cyan" style="padding: 4px 10px; font-size: 0.78rem;">
+                        DOWNLOAD ⬇️
+                      </a>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          `;
+        }
+
+        // Text preview
+        let textHtml = "";
+        if (share.text_content) {
+          textHtml = `
+            <div style="margin-top: 8px;">
+              <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 4px;">Text Content:</div>
+              <div style="background: var(--surface-secondary); padding: 12px; border-radius: 4px; border: 1px solid var(--border-color); font-family: var(--font-mono); font-size: 0.9rem; white-space: pre-wrap; max-height: 140px; overflow-y: auto;">${share.text_content}</div>
+            </div>
+          `;
+        }
+
+        card.innerHTML = `
+          <div class="share-header-bar">
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+              <span class="admin-code-badge">${share.code}</span>
+              ${privHtml}
+              <span style="font-family: var(--font-mono); font-weight: 700; font-size: 0.85rem; color: var(--text-muted);">
+                ⏳ Wipes in: <strong>${minsRemaining}m ${secsRemaining}s</strong>
+              </span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 8px;">
+              ${share.files && share.files.length > 0 ? `
+                <a href="${share.downloadAllZipUrl}" class="neo-btn neo-btn-purple" style="padding: 6px 12px; font-size: 0.8rem;">
+                  📦 ZIP
+                </a>
+              ` : ''}
+              <button class="neo-btn neo-btn-pink delete-share-btn" data-code="${share.code}" style="padding: 6px 14px; font-size: 0.8rem;">
+                DELETE / WIPE NOW 🗑️
+              </button>
+            </div>
+          </div>
+
+          ${textHtml}
+          ${filesHtml}
+        `;
+
+        sharesListContainer.appendChild(card);
+      });
+
+      // Hook up delete buttons
+      document.querySelectorAll(".delete-share-btn").forEach((btn) => {
+        btn.onclick = async () => {
+          const code = btn.getAttribute("data-code");
+          if (!confirm(`Are you sure you want to permanently delete and wipe share [${code}]?`)) return;
+          
+          const key = sessionStorage.getItem(ADMIN_KEY_STORAGE);
+          try {
+            const resp = await fetch(`/api/admin/shares/${code}?key=${encodeURIComponent(key)}`, {
+              method: "DELETE"
+            });
+            const res = await resp.json();
+            if (resp.ok) {
+              showToast(`Wiped share ${code} immediately!`);
+              fetchAdminShares(key);
+            } else {
+              showToast(res.detail || "Failed to delete.", true);
+            }
+          } catch (err) {
+            showToast("Server error during deletion.", true);
+          }
+        };
+      });
+    }
+
+    // Initialize
+    checkAuth();
+  </script>
+</body>
+</html>

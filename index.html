@@ -171,6 +171,35 @@
           <!-- Selected Files List -->
           <div id="fileList" class="file-list"></div>
 
+          <!-- Visibility: Public vs Private (Password) -->
+          <div style="margin-bottom: 16px;">
+            <div style="font-weight: 800; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px;">
+              Transfer Security & Privacy:
+            </div>
+            <div style="display: flex; gap: 10px;">
+              <button type="button" id="visPublicBtn" class="neo-btn neo-btn-lime" style="flex: 1; padding: 10px; font-size: 0.85rem;">
+                <svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+                <span>PUBLIC (NO PASS)</span>
+              </button>
+              <button type="button" id="visPrivateBtn" class="neo-btn" style="flex: 1; padding: 10px; font-size: 0.85rem; background: var(--surface-secondary);">
+                <svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <span>PRIVATE (SET PASSWORD)</span>
+              </button>
+            </div>
+            <div id="passwordFieldContainer" style="display: none; margin-top: 10px;">
+              <input
+                type="text"
+                id="sharePasswordInput"
+                placeholder="Set file password (any letters, numbers, or symbols)..."
+                autocomplete="off"
+                style="width: 100%; padding: 12px; border: var(--border-width) solid var(--border-color); border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 0.95rem; background: var(--surface); color: var(--text-main); outline: none; font-weight: 700;"
+              />
+              <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); margin-top: 4px;">
+                Anyone receiving this 4-character code must enter this password to view or download.
+              </div>
+            </div>
+          </div>
+
           <!-- Bottom Controls -->
           <div class="card-controls">
             <div class="expiry-select-wrapper">
@@ -274,6 +303,28 @@
             <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
             <span>RETRIEVE CONTENT</span>
           </button>
+        </div>
+
+        <!-- Password Prompt Card for Private Shares -->
+        <div id="privatePasswordCard" style="display: none; margin-top: 20px; padding: 22px; background: var(--surface-secondary); border: var(--border-width) solid var(--border-color); box-shadow: var(--shadow-hard); border-radius: var(--radius-sm);">
+          <div style="font-weight: 900; font-size: 1.15rem; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+            <svg class="icon icon-md" viewBox="0 0 24 24" style="color: var(--accent-pink);"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span>Password Protected Transfer</span>
+          </div>
+          <p style="font-size: 0.92rem; color: var(--text-muted); font-weight: 700; margin-bottom: 14px;">
+            This transfer was locked with a private password by the sender. Enter the password below to unlock:
+          </p>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <input
+              type="password"
+              id="receivePasswordInput"
+              placeholder="Enter transfer password..."
+              style="flex: 1; min-width: 220px; padding: 12px 14px; border: 2px solid var(--border-color); border-radius: 4px; font-family: var(--font-mono); font-size: 1.05rem; background: var(--surface); color: var(--text-main); font-weight: 700; outline: none;"
+            />
+            <button type="button" id="unlockBtn" class="neo-btn neo-btn-primary" style="padding: 12px 20px;">
+              <span>UNLOCK PAYLOAD</span>
+            </button>
+          </div>
         </div>
 
         <!-- Loading spinner -->

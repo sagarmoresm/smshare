@@ -27,6 +27,9 @@ BASE_DIR = Path(__file__).parent
 UPLOADS_DIR = BASE_DIR / "uploads"
 STATIC_DIR = BASE_DIR / "static"
 
+# Admin Master Key (configurable via environment variable)
+ADMIN_SECRET = os.environ.get("ADMIN_KEY", "smshare-admin-2026")
+
 # Limits: Max 10 files, 500 MB per file
 MAX_FILES = 10
 MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024  # 500 MB
@@ -37,9 +40,7 @@ async def purge_expired_shares():
         try:
             expired_codes = database.get_expired_codes()
             for code in expired_codes:
-                # Remove from database
                 database.delete_share(code)
-                # Remove files from disk
                 code_folder = UPLOADS_DIR / code
                 if code_folder.exists():
                     shutil.rmtree(code_folder, ignore_errors=True)
@@ -61,8 +62,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="SMSHARE API",
-    description="Privacy-first, self-destructing temporary file & text sharing with Neo-Brutalist design",
-    version="2.0.0",
+    description="Privacy-first, self-destructing temporary file & text sharing with Neo-Brutalism design",
+    version="2.1.0",
     lifespan=lifespan
 )
 
@@ -78,6 +79,8 @@ app.add_middleware(
 async def send_payload(
     text: Optional[str] = Form(None),
     expireAtHour: float = Form(0.5), # Default 30 min
+    isPrivate: bool = Form(False),
+    password: Optional[str] = Form(None),
     files: List[UploadFile] = File(default=[])
 ):
     clean_text = text.strip() if text else ""
@@ -95,9 +98,15 @@ async def send_payload(
             detail=f"Maximum allowed is {MAX_FILES} files per share."
         )
 
-    # Allowed expiry options: 0.5 (30m), 2, 12, 24 hours
     if expireAtHour <= 0 or expireAtHour > 72:
         expireAtHour = 0.5
+
+    clean_pass = password.strip() if password else None
+    if isPrivate and not clean_pass:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A password is required for private shares."
+        )
 
     # Determine type
     if clean_text and valid_files:
@@ -118,19 +127,15 @@ async def send_payload(
         code_folder.mkdir(parents=True, exist_ok=True)
         for uf in valid_files:
             file_id = uuid.uuid4().hex[:12]
-            # Sanitize original filename
             safe_original_name = Path(uf.filename).name or f"file_{file_id}"
-            ext = Path(safe_original_name).suffix
             stored_name = f"{file_id}_{safe_original_name}"
             stored_path = code_folder / stored_name
 
-            # Stream save file and track size
             size_counter = 0
             with open(stored_path, "wb") as dest:
                 while chunk := await uf.read(1024 * 1024):  # 1MB chunks
                     size_counter += len(chunk)
                     if size_counter > MAX_FILE_SIZE_BYTES:
-                        # Clean up and abort
                         dest.close()
                         shutil.rmtree(code_folder, ignore_errors=True)
                         raise HTTPException(
@@ -147,16 +152,17 @@ async def send_payload(
                 "stored_filename": stored_name
             })
 
-    # Save to SQLite database
+    # Save to database
     share = database.create_share(
         code=code,
         share_type=share_type,
         text_content=clean_text if clean_text else None,
         expire_hours=expireAtHour,
-        files=saved_file_records
+        files=saved_file_records,
+        is_private=isPrivate,
+        password=clean_pass
     )
 
-    # Calculate seconds
     import datetime
     now = datetime.datetime.now(datetime.timezone.utc)
     expires_at = datetime.datetime.fromisoformat(share["expires_at"])
@@ -166,6 +172,7 @@ async def send_payload(
         "success": True,
         "code": share["code"],
         "share_type": share["share_type"],
+        "is_private": share["is_private"],
         "expires_at": share["expires_at"],
         "seconds_remaining": seconds_remaining,
         "file_count": share["file_count"],
@@ -173,9 +180,12 @@ async def send_payload(
     }
 
 @app.get("/api/receive")
-async def receive_payload(code: str = Query(..., min_length=1, max_length=10)):
+async def receive_payload(
+    code: str = Query(..., min_length=1, max_length=10),
+    password: Optional[str] = Query(None)
+):
     clean_code = code.strip().upper()
-    share = database.get_share(clean_code)
+    share = database.get_share(clean_code, password=password)
     
     if not share:
         raise HTTPException(
@@ -183,19 +193,31 @@ async def receive_payload(code: str = Query(..., min_length=1, max_length=10)):
             detail="The requested code is invalid or has expired and been destroyed."
         )
 
+    # Check if password is required
+    if share.get("requires_password"):
+        return {
+            "success": False,
+            "requiresPassword": True,
+            "code": clean_code,
+            "secondsRemaining": share.get("seconds_remaining", 0)
+        }
+
     # Format file list with download URLs
     formatted_files = []
+    pass_param = f"?password={share.get('password')}" if share.get("is_private") and share.get("password") else ""
     for f in share.get("files", []):
         formatted_files.append({
             "id": f["id"],
             "fileName": f["file_name"],
             "fileSize": f["file_size"],
             "fileMime": f["file_mime"],
-            "downloadUrl": f"/api/download/{clean_code}/{f['id']}"
+            "downloadUrl": f"/api/download/{clean_code}/{f['id']}{pass_param}"
         })
 
     return {
         "success": True,
+        "requiresPassword": False,
+        "isPrivate": share.get("is_private", False),
         "code": share["code"],
         "type": share["share_type"],
         "text": share["text_content"],
@@ -208,13 +230,19 @@ async def receive_payload(code: str = Query(..., min_length=1, max_length=10)):
     }
 
 @app.get("/api/download/{code}/{file_id}")
-async def download_file(code: str, file_id: str):
+async def download_file(
+    code: str,
+    file_id: str,
+    password: Optional[str] = Query(None),
+    adminKey: Optional[str] = Query(None)
+):
     clean_code = code.strip().upper()
-    share = database.get_share(clean_code)
-    if not share:
+    is_admin = (adminKey == ADMIN_SECRET)
+    share = database.get_share(clean_code, password=password, is_admin=is_admin)
+    if not share or share.get("requires_password"):
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Content has expired or does not exist."
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid password or expired content."
         )
 
     file_entry = next((f for f in share.get("files", []) if f["id"] == file_id), None)
@@ -239,13 +267,18 @@ async def download_file(code: str, file_id: str):
     )
 
 @app.get("/api/download-zip/{code}")
-async def download_all_zip(code: str):
+async def download_all_zip(
+    code: str,
+    password: Optional[str] = Query(None),
+    adminKey: Optional[str] = Query(None)
+):
     clean_code = code.strip().upper()
-    share = database.get_share(clean_code)
-    if not share:
+    is_admin = (adminKey == ADMIN_SECRET)
+    share = database.get_share(clean_code, password=password, is_admin=is_admin)
+    if not share or share.get("requires_password"):
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Content has expired or does not exist."
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid password or expired content."
         )
 
     files = share.get("files", [])
@@ -255,7 +288,6 @@ async def download_all_zip(code: str):
             detail="No files attached to this share."
         )
 
-    # Build ZIP archive in memory
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
         for f in files:
@@ -263,14 +295,13 @@ async def download_all_zip(code: str):
             if file_path.exists():
                 zip_file.write(file_path, arcname=f["file_name"])
 
-        # Add transfer receipt note
         readme_text = (
             f"SMSHARE SECURE TRANSFER\n"
             f"Code: {clean_code}\n"
             f"Created: {share['created_at']}\n"
             f"Expires: {share['expires_at']}\n\n"
             f"All content on SMSHARE self-destructs after expiry.\n"
-            f"Zero logging · No accounts · Built for privacy-first sharing.\n"
+            f"Zero logging · Built for privacy-first sharing.\n"
         )
         zip_file.writestr("SMSHARE_RECEIPT.txt", readme_text)
 
@@ -297,11 +328,65 @@ async def system_status():
         }
     }
 
+# =========================================================================
+# SECRET ADMIN API ENDPOINTS
+# =========================================================================
+
+@app.get("/api/admin/shares")
+async def admin_get_shares(key: str = Query(...)):
+    if key != ADMIN_SECRET:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid admin secret key.")
+    
+    shares = database.get_all_shares_for_admin()
+    
+    # Calculate total size & attach download links with admin key bypass
+    total_bytes = 0
+    total_files = 0
+    for s in shares:
+        total_bytes += s.get("total_size", 0)
+        total_files += s.get("file_count", 0)
+        for f in s.get("files", []):
+            f["downloadUrl"] = f"/api/download/{s['code']}/{f['id']}?adminKey={key}"
+        s["downloadAllZipUrl"] = f"/api/download-zip/{s['code']}?adminKey={key}"
+
+    return {
+        "success": True,
+        "activeCount": len(shares),
+        "totalFiles": total_files,
+        "totalStorageBytes": total_bytes,
+        "shares": shares
+    }
+
+@app.delete("/api/admin/shares/{code}")
+async def admin_delete_share(code: str, key: str = Query(...)):
+    if key != ADMIN_SECRET:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid admin secret key.")
+    
+    clean_code = code.strip().upper()
+    database.delete_share(clean_code)
+    code_folder = UPLOADS_DIR / clean_code
+    if code_folder.exists():
+        shutil.rmtree(code_folder, ignore_errors=True)
+        
+    return {"success": True, "message": f"Share {clean_code} wiped immediately."}
+
+# =========================================================================
+# STATIC FILE ROUTING
+# =========================================================================
+
 def get_static_file(filename: str) -> Optional[Path]:
     for cand in [BASE_DIR / "static" / filename, BASE_DIR / filename]:
         if cand.exists():
             return cand
     return None
+
+@app.get("/admin")
+@app.get("/admin.html")
+async def admin_page():
+    p = get_static_file("admin.html")
+    if p:
+        return FileResponse(p)
+    return JSONResponse(status_code=404, content={"detail": "admin.html not found"})
 
 @app.get("/favicon.ico")
 @app.get("/favicon.svg")
@@ -318,10 +403,9 @@ async def root():
         return FileResponse(p)
     return JSONResponse(
         status_code=404,
-        content={"detail": "Frontend index.html is missing. Please upload the frontend files (index.html, style.css, app.js) to your GitHub repo."}
+        content={"detail": "Frontend index.html is missing. Please upload the frontend files to your GitHub repo."}
     )
 
-# Direct route for /c/{code} to serve the index.html with code preloaded
 @app.get("/c/{code}")
 async def direct_code_share(code: str):
     p = get_static_file("index.html")
@@ -357,6 +441,5 @@ async def get_sitemap():
         return FileResponse(p, media_type="text/xml")
     return JSONResponse(status_code=404, content={"detail": "sitemap.xml not found"})
 
-# Mount static frontend if directory exists
 if (BASE_DIR / "static").exists():
     app.mount("/", StaticFiles(directory=str(BASE_DIR / "static"), html=True), name="static")

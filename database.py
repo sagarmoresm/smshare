@@ -27,7 +27,9 @@ def init_db():
                 created_at TEXT NOT NULL,
                 expires_at TEXT NOT NULL,
                 file_count INTEGER DEFAULT 0,
-                total_size INTEGER DEFAULT 0
+                total_size INTEGER DEFAULT 0,
+                is_private INTEGER DEFAULT 0,
+                password TEXT
             );
         """)
         conn.execute("""
@@ -42,11 +44,21 @@ def init_db():
             );
         """)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_shares_expires ON shares(expires_at);")
+        
+        # Safely migrate existing tables if columns missing
+        try:
+            conn.execute("ALTER TABLE shares ADD COLUMN is_private INTEGER DEFAULT 0;")
+        except Exception:
+            pass
+        try:
+            conn.execute("ALTER TABLE shares ADD COLUMN password TEXT;")
+        except Exception:
+            pass
+
         conn.commit()
 
 # Ensure tables are initialized on import
 init_db()
-
 
 def generate_unique_code(conn: sqlite3.Connection) -> str:
     for _ in range(50):
@@ -62,7 +74,9 @@ def create_share(
     share_type: str,
     text_content: Optional[str],
     expire_hours: float,
-    files: List[Dict[str, Any]]
+    files: List[Dict[str, Any]],
+    is_private: bool = False,
+    password: Optional[str] = None
 ) -> Dict[str, Any]:
     code = code.strip().upper()
     with get_connection() as conn:
@@ -74,13 +88,14 @@ def create_share(
         
         total_size = sum(f.get("file_size", 0) for f in files)
         file_count = len(files)
+        clean_pass = password.strip() if password else None
         
         conn.execute(
             """
-            INSERT INTO shares (code, share_type, text_content, created_at, expires_at, file_count, total_size)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO shares (code, share_type, text_content, created_at, expires_at, file_count, total_size, is_private, password)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (code, share_type, text_content, now_iso, expires_iso, file_count, total_size)
+            (code, share_type, text_content, now_iso, expires_iso, file_count, total_size, 1 if is_private else 0, clean_pass)
         )
         
         for f in files:
@@ -99,10 +114,12 @@ def create_share(
             "created_at": now_iso,
             "expires_at": expires_iso,
             "file_count": file_count,
-            "total_size": total_size
+            "total_size": total_size,
+            "is_private": is_private,
+            "has_password": bool(clean_pass)
         }
 
-def get_share(code: str) -> Optional[Dict[str, Any]]:
+def get_share(code: str, password: Optional[str] = None, is_admin: bool = False) -> Optional[Dict[str, Any]]:
     code = code.strip().upper()
     with get_connection() as conn:
         cursor = conn.execute("SELECT * FROM shares WHERE code = ?", (code,))
@@ -118,13 +135,51 @@ def get_share(code: str) -> Optional[Dict[str, Any]]:
             delete_share(code)
             return None
         
+        seconds_remaining = max(0, int((expires_at - now).total_seconds()))
+        is_priv = bool(row["is_private"])
+        stored_pass = row["password"] or ""
+
+        # If private and not admin, check password
+        if is_priv and not is_admin:
+            if not password or password.strip() != stored_pass.strip():
+                return {
+                    "code": code,
+                    "requires_password": True,
+                    "is_private": True,
+                    "seconds_remaining": seconds_remaining
+                }
+        
         files_cursor = conn.execute("SELECT * FROM files WHERE code = ?", (code,))
         files = [dict(f) for f in files_cursor.fetchall()]
         
         share_data = dict(row)
         share_data["files"] = files
-        share_data["seconds_remaining"] = max(0, int((expires_at - now).total_seconds()))
+        share_data["seconds_remaining"] = seconds_remaining
+        share_data["is_private"] = is_priv
+        share_data["requires_password"] = False
         return share_data
+
+def get_all_shares_for_admin() -> List[Dict[str, Any]]:
+    """Returns all non-expired shares with full files and password details for the admin dashboard."""
+    now = datetime.datetime.now(datetime.timezone.utc)
+    now_iso = now.isoformat()
+    
+    with get_connection() as conn:
+        cursor = conn.execute("SELECT * FROM shares WHERE expires_at > ? ORDER BY created_at DESC", (now_iso,))
+        rows = cursor.fetchall()
+        
+        results = []
+        for row in rows:
+            share = dict(row)
+            expires_at = datetime.datetime.fromisoformat(share["expires_at"])
+            share["seconds_remaining"] = max(0, int((expires_at - now).total_seconds()))
+            share["is_private"] = bool(share["is_private"])
+            
+            f_cursor = conn.execute("SELECT * FROM files WHERE code = ?", (share["code"],))
+            share["files"] = [dict(f) for f in f_cursor.fetchall()]
+            results.append(share)
+            
+        return results
 
 def get_expired_codes() -> List[str]:
     now = datetime.datetime.now(datetime.timezone.utc).isoformat()
