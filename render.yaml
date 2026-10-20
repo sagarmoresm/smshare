@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: smshare
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python run.py
+    plan: free
+    autoDeploy: true
